@@ -1,0 +1,77 @@
+name: cinemax
+description: "CineMax - Movie streaming app with TMDB API"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  provider: ^6.1.2
+
+  # Routing
+  go_router: ^14.8.1
+
+  # HTTP & API
+  dio: ^5.7.0
+
+  # Environment Variables
+  flutter_dotenv: ^5.2.1
+
+  # Firebase
+  firebase_core: ^3.12.1
+  firebase_auth: ^5.5.1
+  cloud_firestore: ^5.6.5
+  firebase_storage: ^12.4.10
+  google_sign_in: ^6.2.2
+
+  # Media
+  image_picker: ^1.1.2
+
+  # UI Components
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+  flutter_rating_bar: ^4.0.1
+  carousel_slider: ^5.0.0
+  google_fonts: ^6.2.1
+
+  # Video
+  youtube_player_flutter: ^9.1.1
+
+  # Utils
+  share_plus: ^10.1.4
+  url_launcher: ^6.3.1
+  shared_preferences: ^2.3.4
+  intl: ^0.19.0
+  firebase_messaging: ^15.2.10
+  flutter_local_notifications: ^21.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+  mockito: ^5.4.4
+  build_runner: ^2.4.8
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "assets/logo/app_icon.png"
+  adaptive_icon_background: "#1F2123"
+  adaptive_icon_foreground: "assets/logo/app_icon.png"
+  min_sdk_android: 23
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+    - assets/fonts/
+    - assets/logo/
