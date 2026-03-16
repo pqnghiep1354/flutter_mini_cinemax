@@ -49,3 +49,7 @@ figma.md
 figma.png
 properties.md
 assets/cinemax-3b1d3-firebase-adminsdk-fbsvc-55e6f786f7.json
+
+# Firebase configuration files
+assets/google-services.json
+android/app/google-services.json
