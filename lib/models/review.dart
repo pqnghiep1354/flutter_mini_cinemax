@@ -59,3 +59,27 @@ class Review {
     return 'https://image.tmdb.org/t/p/w185$avatarPath';
   }
 }
+class ReviewResponse {
+  final List<Review> results;
+  final int page;
+  final int totalPages;
+  final int totalResults;
+
+  ReviewResponse({
+    required this.results,
+    required this.page,
+    required this.totalPages,
+    required this.totalResults,
+  });
+
+  factory ReviewResponse.fromJson(Map<String, dynamic> json) {
+    return ReviewResponse(
+      results: (json['results'] as List)
+          .map((json) => Review.fromJson(json))
+          .toList(),
+      page: json['page'] ?? 1,
+      totalPages: json['total_pages'] ?? 1,
+      totalResults: json['total_results'] ?? 0,
+    );
+  }
+}

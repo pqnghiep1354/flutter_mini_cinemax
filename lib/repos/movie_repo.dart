@@ -65,13 +65,12 @@ class MovieRepo {
     return cast.map((json) => Cast.fromJson(json)).toList();
   }
 
-  Future<List<Review>> getReviews(int movieId, {int page = 1}) async {
+  Future<ReviewResponse> getReviews(int movieId, {int page = 1}) async {
     final response = await _api.get(
       '/movie/$movieId/reviews',
       queryParameters: {'page': page},
     );
-    final results = response.data['results'] as List;
-    return results.map((json) => Review.fromJson(json)).toList();
+    return ReviewResponse.fromJson(response.data);
   }
 
   Future<List<Video>> getVideos(int movieId) async {

@@ -9,13 +9,16 @@ import 'package:cinemax/screens/auth/register_screen.dart';
 import 'package:cinemax/screens/auth/forgot_password_screen.dart';
 import 'package:cinemax/screens/main_nav/main_nav_screen.dart';
 import 'package:cinemax/screens/movie_detail/movie_detail_screen.dart';
+import 'package:cinemax/providers/movie_detail_provider.dart';
 import 'package:cinemax/screens/series_detail/series_detail_screen.dart';
+import 'package:cinemax/providers/series_provider.dart';
 import 'package:cinemax/screens/search/search_screen.dart';
 import 'package:cinemax/screens/top_movies/top_movies_screen.dart';
 import 'package:cinemax/screens/profile/edit_profile_screen.dart';
 import 'package:cinemax/screens/trailer/trailer_screen.dart';
 import 'package:cinemax/screens/home/section_movies_screen.dart';
 import 'package:cinemax/screens/person_detail/person_detail_screen.dart';
+import 'package:cinemax/providers/person_detail_provider.dart';
 import 'package:cinemax/screens/notifications/notifications_screen.dart';
 import 'package:cinemax/screens/downloads/downloads_screen.dart';
 import 'package:cinemax/screens/profile/security_screen.dart';
@@ -90,14 +93,20 @@ class AppRouter {
           path: '/movie/:id',
           builder: (context, state) {
             final id = int.parse(state.pathParameters['id']!);
-            return MovieDetailScreen(movieId: id);
+            return ChangeNotifierProvider(
+              create: (_) => MovieDetailProvider(),
+              child: MovieDetailScreen(movieId: id),
+            );
           },
         ),
         GoRoute(
           path: '/series/:id',
           builder: (context, state) {
             final id = int.parse(state.pathParameters['id']!);
-            return SeriesDetailScreen(seriesId: id);
+            return ChangeNotifierProvider(
+              create: (_) => SeriesProvider(),
+              child: SeriesDetailScreen(seriesId: id),
+            );
           },
         ),
         GoRoute(
@@ -136,7 +145,10 @@ class AppRouter {
           path: '/person/:id',
           builder: (context, state) {
             final id = int.parse(state.pathParameters['id']!);
-            return PersonDetailScreen(personId: id);
+            return ChangeNotifierProvider(
+              create: (_) => PersonDetailProvider(),
+              child: PersonDetailScreen(personId: id),
+            );
           },
         ),
         GoRoute(

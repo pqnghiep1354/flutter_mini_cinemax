@@ -32,11 +32,19 @@ class MovieDetailProvider extends ChangeNotifier {
         );
 
   int _currentReviewPage = 1;
+  int _totalReviewPages = 1;
+  bool _isLoadingMoreReviews = false;
+
+  int get currentReviewPage => _currentReviewPage;
+  int get totalReviewPages => _totalReviewPages;
+  bool get isLoadingMoreReviews => _isLoadingMoreReviews;
+  bool get hasMoreReviews => _currentReviewPage < _totalReviewPages;
 
   Future<void> loadMovieDetail(int movieId) async {
     _isLoading = true;
     _errorMessage = null;
     _currentReviewPage = 1;
+    _totalReviewPages = 1;
     notifyListeners();
 
     try {
@@ -53,7 +61,9 @@ class MovieDetailProvider extends ChangeNotifier {
       _videos = results[3] as List<Video>;
       _similar = results[4] as List<Movie>;
       
-      final tmdbReviews = results[2] as List<Review>;
+      final reviewResponse = results[2] as ReviewResponse;
+      _totalReviewPages = reviewResponse.totalPages;
+      final tmdbReviews = reviewResponse.results;
       List<Review> localReviews = [];
       
       // Fetch local reviews separately to isolate Firestore errors
@@ -76,14 +86,20 @@ class MovieDetailProvider extends ChangeNotifier {
   }
 
   Future<void> loadMoreReviews() async {
-    if (_movie == null) return;
+    if (_movie == null || _isLoadingMoreReviews || !hasMoreReviews) return;
     
+    _isLoadingMoreReviews = true;
+    notifyListeners();
+
     try {
       _currentReviewPage++;
-      final moreReviews = await _movieRepo.getReviews(_movie!.id, page: _currentReviewPage);
-      _reviews = [..._reviews, ...moreReviews];
+      final reviewResponse = await _movieRepo.getReviews(_movie!.id, page: _currentReviewPage);
+      _reviews = [..._reviews, ...reviewResponse.results];
+      _isLoadingMoreReviews = false;
       notifyListeners();
     } catch (e) {
+      _isLoadingMoreReviews = false;
+      notifyListeners();
       // Don't show global error for load more
       debugPrint('Error loading more reviews: $e');
     }

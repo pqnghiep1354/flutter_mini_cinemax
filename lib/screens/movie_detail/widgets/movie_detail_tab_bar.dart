@@ -9,85 +9,50 @@ import 'package:provider/provider.dart';
 import 'package:cinemax/providers/auth_provider.dart' as app_auth;
 import 'package:cinemax/providers/movie_detail_provider.dart';
 import '../../../widgets/cached_image.dart';
+import '../../../widgets/loading_indicator.dart';
 import 'movie_detail_review_item.dart';
 
-class MovieDetailTabBar extends StatefulWidget {
+enum MovieDetailTabType { trailers, reviews, similar }
+
+class MovieDetailTabBar extends StatelessWidget {
   final List<Video> videos;
   final List<Review> reviews;
   final List<Movie> similar;
+  final MovieDetailTabType initialTab;
+  final bool hasMoreReviews;
+  final bool isLoadingMoreReviews;
 
   const MovieDetailTabBar({
     super.key,
     required this.videos,
     required this.reviews,
     required this.similar,
+    required this.initialTab,
+    this.hasMoreReviews = false,
+    this.isLoadingMoreReviews = false,
   });
 
   @override
-  State<MovieDetailTabBar> createState() => _MovieDetailTabBarState();
-}
-
-class _MovieDetailTabBarState extends State<MovieDetailTabBar>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.mediumGrey,
-          labelStyle: AppTextStyles.bodyMedium.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-          tabs: const [
-            Tab(text: 'Trailers'),
-            Tab(text: 'Reviews'),
-            Tab(text: 'Similar'),
-          ],
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 600,
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildTrailers(),
-              _buildReviews(),
-              _buildSimilar(),
-            ],
-          ),
-        ),
-      ],
-    );
+    switch (initialTab) {
+      case MovieDetailTabType.trailers:
+        return _buildTrailers(context);
+      case MovieDetailTabType.reviews:
+        return _buildReviews(context);
+      case MovieDetailTabType.similar:
+        return _buildSimilar(context);
+    }
   }
 
-  Widget _buildTrailers() {
-    final youtubeVideos =
-        widget.videos.where((v) => v.isYoutube).toList();
+  Widget _buildTrailers(BuildContext context) {
+    final youtubeVideos = videos.where((v) => v.isYoutube).toList();
 
     if (youtubeVideos.isEmpty) {
       return const Center(child: Text('No trailers available'));
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
       itemCount: youtubeVideos.length,
       itemBuilder: (context, index) {
         final video = youtubeVideos[index];
@@ -150,62 +115,71 @@ class _MovieDetailTabBarState extends State<MovieDetailTabBar>
     );
   }
 
-  Widget _buildReviews() {
-    return Column(
-      children: [
-        Consumer<app_auth.AuthProvider>(
-          builder: (context, auth, _) {
-            if (!auth.isLoggedIn) {
+  Widget _buildReviews(BuildContext context) {
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Consumer<app_auth.AuthProvider>(
+            builder: (context, auth, _) {
+              if (!auth.isLoggedIn) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Text(
+                    'Login to write a review',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.primary),
+                  ),
+                );
+              }
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Login to write a review',
-                  style: AppTextStyles.caption.copyWith(color: AppColors.primary),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ElevatedButton.icon(
+                  onPressed: () => _showAddReviewDialog(context),
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('Write a Review'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    foregroundColor: AppColors.primary,
+                    elevation: 0,
+                    minimumSize: const Size(double.infinity, 40),
+                  ),
                 ),
               );
-            }
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ElevatedButton.icon(
-                onPressed: _showAddReviewDialog,
-                icon: const Icon(Icons.edit, size: 18),
-                label: const Text('Write a Review'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                  foregroundColor: AppColors.primary,
-                  elevation: 0,
-                  minimumSize: const Size(double.infinity, 40),
-                ),
-              ),
-            );
-          },
+            },
+          ),
         ),
-        if (widget.reviews.isEmpty)
-          const Expanded(child: Center(child: Text('No reviews yet')))
+        if (reviews.isEmpty)
+          const SliverFillRemaining(
+            child: Center(child: Text('No reviews yet')),
+          )
         else
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: widget.reviews.length + 1,
-              itemBuilder: (context, index) {
-                if (index == widget.reviews.length) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: TextButton(
-                      onPressed: () => context.read<MovieDetailProvider>().loadMoreReviews(),
-                      child: const Text('Load More Reviews'),
-                    ),
-                  );
-                }
-                return MovieDetailReviewItem(review: widget.reviews[index]);
-              },
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index == reviews.length) {
+                    if (!hasMoreReviews) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: isLoadingMoreReviews
+                          ? const Center(child: LoadingIndicator())
+                          : TextButton(
+                              onPressed: () => context.read<MovieDetailProvider>().loadMoreReviews(),
+                              child: const Text('Load More Reviews'),
+                            ),
+                    );
+                  }
+                  return MovieDetailReviewItem(review: reviews[index]);
+                },
+                childCount: reviews.length + 1,
+              ),
             ),
           ),
       ],
     );
   }
 
-  void _showAddReviewDialog() {
+  void _showAddReviewDialog(BuildContext context) {
     final auth = context.read<app_auth.AuthProvider>();
     final contentController = TextEditingController();
     double rating = 5.0;
@@ -268,22 +242,22 @@ class _MovieDetailTabBarState extends State<MovieDetailTabBar>
     );
   }
 
-  Widget _buildSimilar() {
-    if (widget.similar.isEmpty) {
+  Widget _buildSimilar(BuildContext context) {
+    if (similar.isEmpty) {
       return const Center(child: Text('No similar movies'));
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
         childAspectRatio: 0.55,
       ),
-      itemCount: widget.similar.length,
+      itemCount: similar.length,
       itemBuilder: (context, index) {
-        final movie = widget.similar[index];
+        final movie = similar[index];
         return GestureDetector(
           onTap: () => context.push('/movie/${movie.id}'),
           child: Column(

@@ -42,13 +42,18 @@ class HomeCategoryChips extends StatelessWidget {
                   color: isSelected ? AppColors.primary : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.border,
+                    color: isSelected
+                        ? AppColors.primary
+                        : Theme.of(context).dividerTheme.color ??
+                              AppColors.border,
                   ),
                 ),
                 child: Text(
                   label,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                    color: isSelected
+                        ? Colors.white
+                        : Theme.of(context).textTheme.bodySmall?.color,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

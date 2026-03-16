@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../config/app_colors.dart';
+import '../../config/app_text_styles.dart';
 import '../../providers/movie_detail_provider.dart';
 import '../../widgets/loading_indicator.dart';
 import '../../widgets/error_widget.dart';
@@ -18,13 +20,14 @@ class MovieDetailScreen extends StatefulWidget {
   State<MovieDetailScreen> createState() => _MovieDetailScreenState();
 }
 
-class _MovieDetailScreenState extends State<MovieDetailScreen> {
-  final ScrollController _scrollController = ScrollController();
+class _MovieDetailScreenState extends State<MovieDetailScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
+    _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MovieDetailProvider>().loadMovieDetail(widget.movieId);
     });
@@ -32,39 +35,32 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    _tabController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GestureDetector(
-        onTap: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
-        child: Consumer<MovieDetailProvider>(
-          builder: (context, provider, _) {
-            if (provider.isLoading) {
-              return const LoadingIndicator();
-            }
+      body: Consumer<MovieDetailProvider>(
+        builder: (context, provider, _) {
+          if (provider.isLoading) {
+            return const LoadingIndicator();
+          }
 
-            if (provider.errorMessage != null) {
-              return AppErrorWidget(
-                message: provider.errorMessage!,
-                onRetry: () => provider.loadMovieDetail(widget.movieId),
-              );
-            }
+          if (provider.errorMessage != null) {
+            return AppErrorWidget(
+              message: provider.errorMessage!,
+              onRetry: () => provider.loadMovieDetail(widget.movieId),
+            );
+          }
 
-            final movie = provider.movie;
-            if (movie == null) return const SizedBox.shrink();
+          final movie = provider.movie;
+          if (movie == null) return const SizedBox.shrink();
 
-            return CustomScrollView(
-              controller: _scrollController,
-              slivers: [
+          return NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
                 // Header with backdrop
                 MovieDetailHeader(movie: movie),
 
@@ -84,21 +80,85 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                     child: MovieDetailCastList(cast: provider.cast),
                   ),
 
-                // Tabs (Trailers, Reviews, Similar)
-                SliverToBoxAdapter(
-                  child: MovieDetailTabBar(
-                    videos: provider.videos,
-                    reviews: provider.reviews,
-                    similar: provider.similar,
+                // Sticky TabBar
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SliverAppBarDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      indicatorColor: AppColors.primary,
+                      labelColor: AppColors.primary,
+                      unselectedLabelColor: AppColors.mediumGrey,
+                      labelStyle: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                      tabs: const [
+                        Tab(text: 'Trailers'),
+                        Tab(text: 'Reviews'),
+                        Tab(text: 'Similar'),
+                      ],
+                    ),
                   ),
                 ),
-
-                const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              ];
+            },
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                MovieDetailTabBar(
+                  initialTab: MovieDetailTabType.trailers,
+                  videos: provider.videos,
+                  reviews: provider.reviews,
+                  similar: provider.similar,
+                  hasMoreReviews: provider.hasMoreReviews,
+                  isLoadingMoreReviews: provider.isLoadingMoreReviews,
+                ),
+                MovieDetailTabBar(
+                  initialTab: MovieDetailTabType.reviews,
+                  videos: provider.videos,
+                  reviews: provider.reviews,
+                  similar: provider.similar,
+                  hasMoreReviews: provider.hasMoreReviews,
+                  isLoadingMoreReviews: provider.isLoadingMoreReviews,
+                ),
+                MovieDetailTabBar(
+                  initialTab: MovieDetailTabType.similar,
+                  videos: provider.videos,
+                  reviews: provider.reviews,
+                  similar: provider.similar,
+                  hasMoreReviews: provider.hasMoreReviews,
+                  isLoadingMoreReviews: provider.isLoadingMoreReviews,
+                ),
               ],
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
+  }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate(this._tabBar);
+
+  final TabBar _tabBar;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
   }
 }
